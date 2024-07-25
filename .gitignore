@@ -1,0 +1,4 @@
+.env
+./export_files/*yml
+./export_files/*sql
+temp*

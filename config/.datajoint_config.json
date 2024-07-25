@@ -1,0 +1,35 @@
+{
+    "database.host": "db",
+    "database.password": "tutorial",
+    "database.user": "root",
+    "database.port": 3306,
+    "database.reconnect": true,
+    "connection.init_function": null,
+    "connection.charset": "",
+    "loglevel": "INFO",
+    "safemode": true,
+    "fetch_format": "array",
+    "display.limit": 12,
+    "display.width": 14,
+    "display.show_tuple_count": true,
+    "database.use_tls": true,
+    "enable_python_native_blobs": true,
+    "filepath_checksum_size_limit": 1073741824,
+    "stores": {
+        "analysis": {
+            "protocol": "file",
+            "location": "/home/jovyan/data/analysis",
+            "stage": "/home/jovyan/data/analysis"
+        },
+        "raw": {
+            "protocol": "file",
+            "location": "/home/jovyan/data/raw",
+            "stage": "/home/jovyan/data/raw"
+        }
+    },
+    "custom": {
+        "spyglass_dirs": {
+            "base_dir": "/home/jovyan/data"
+        }
+    }
+}
