@@ -10,12 +10,12 @@ RUN echo "jovyan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan
 # Add mysql credentials - REMOVE creds later, keep encoding
 ARG MYSQL_HOST
 ARG MYSQL_USER
-ARG MYSQL_PASSWORD
+ARG MYSQL_ROOT_PASSWORD
 RUN echo -e "\
 [client]\n\
 host=${MYSQL_HOST}\n\
 user=${MYSQL_USER}\n\
-password=${MYSQL_PASSWORD}\n\n\
+password=${MYSQL_ROOT_PASSWORD}\n\n\
 [mysqld]\n\
 character-set-server = latin1\n\
 collation-server = latin1_swedish_ci" > ${HOME}/.my.cnf

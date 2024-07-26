@@ -10,11 +10,11 @@ IS_RUNNING=$(shell docker ps --filter "name=hub" --filter "status=running" -q)
 DOCKER_EXEC_SH = docker exec -it hub /bin/bash -c
 DOCKER_EXEC_SQL = docker exec -it hub mysql -e
 
-
 # Copy files from the paper directory to the export_files directory
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
+	# @cp -f ${SPYGLASS_PAPER_DIR}/spyglass_version ./export_files/
 
 # Tear down the container, if it is running
 down:
@@ -27,9 +27,12 @@ down:
 
 # Build the container, run sanity check ls
 only_up:
-	docker compose up --build -d
-	$(DOCKER_EXEC) "ls -l /home"
+	@docker compose up --build -d
 
 # Enter the container
 only_enter:
-	docker exec -it hub /bin/bash
+	@docker exec -it hub /bin/bash
+
+# Publish to docker hub
+publish:
+	echo "NOT YET IMPLEMENTED"

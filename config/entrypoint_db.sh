@@ -2,29 +2,26 @@
 set -e
 
 # Run the original entrypoint script from the image
-# /docker-entrypoint.sh mysqld &
+/entrypoint.sh mysqld &
 
-CREDS="-u$MYSQL_USER -p$MYSQL_PASSWORD"
-
-# # Wait for MySQL to be ready
-# count=0
-# max=10
-# until mysql "$CREDS" -e "SELECT 1;" &>/dev/null; do
-#   if [ $count -eq $max ]; then
-#     echo "Error: Couldn't connect to MySQL."
-#     exit 1
-#   fi
-#   echo "Waiting for MySQL ... $count"
-#   echo $CREDS
-#   (( count++ ))
-#   sleep 1
-# done
+# Wait for MySQL to be ready
+for i in {30..0}; do # For loop waiting for MySQL to be ready
+  if mysqladmin ping -p"$MYSQL_PASSWORD" --silent; then
+    break
+  fi
+  echo "Waiting for MySQL ... $i"
+  sleep 1
+  if [ "$i" -eq 0 ]; then
+    echo "MySQL failed to start"
+    exit 1
+  fi
+done
 
 # Execute all SQL scripts in the initialization directory
 for f in /docker-entrypoint-initdb.d/*.sql; do
   echo "Running $f..."
-  mysql "$CREDS" < "$f"
+  mysql -u"$MYSQL_USER" -p"$MYSQL_ROOT_PASSWORD" < "$f"
 done
 
 # Wait for the original entrypoint script to finish
-# wait
+wait
