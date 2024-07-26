@@ -1,4 +1,5 @@
 .env
-./export_files/*yml
-./export_files/*sql
 temp*
+./export_files/*yml
+./export_files/*yaml
+./export_files/*sql

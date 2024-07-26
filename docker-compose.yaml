@@ -3,33 +3,27 @@ services:
     build:
       context: .
       args:
-        PAPER_ID: "${PAPER_ID}"
-        MYSQL_USER: "${MYSQL_USER}"
-        MYSQL_HOST: "${MYSQL_HOST}"
-        MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
-        CONTAINER_PAPER_DIR: "${CONTAINER_PAPER_DIR}"
-        SPYGLASS_PAPER_DIR: "${SPYGLASS_PAPER_DIR}"
+        - PAPER_ID
+        - MYSQL_USER
+        - MYSQL_HOST
+        - MYSQL_PASSWORD
+        - CONTAINER_PAPER_DIR
+        - SPYGLASS_PAPER_DIR
       dockerfile: Dockerfile
     container_name: hub
     ports:
       - "8888:8888"
-    entrypoint: ["/entrypoint.sh"]
-    environment:
-      CONTAINER_NOTEBOOK_DIR: "${CONTAINER_NOTEBOOK_DIR}"
-      SPYGLASS_PAPER_DIR: "${SPYGLASS_PAPER_DIR}"
-      CONTAINER_PAPER_DIR: "${CONTAINER_PAPER_DIR}"
-      CONTAINER_DJ_CONFIG: "${CONTAINER_DJ_CONFIG}"
-      DJ_SUPPORT_FILEPATH_MANAGEMENT: "${DJ_SUPPORT_FILEPATH_MANAGEMENT}"
-      HD5_USE_FILE_LOCKING: "${HD5_USE_FILE_LOCKING}"
-      SPYGLASS_BASE_DIR: "${CONTAINER_BASE_DIR}"
-      JUPYTERHUB_SINGLEUSER_APP: 'notebook.notebookapp.NotebookApp'
+    # entrypoint: ["/entrypoint.sh"]
+    env_file: .env
     volumes:
       - ./notebooks:${CONTAINER_NOTEBOOK_DIR}
       - ./config/.datajoint_config.json:${CONTAINER_DJ_CONFIG}
-      - ./config/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py
-      - ./config/entrypoint.sh:/entrypoint.sh
-      - ./config/entrypoint.py:/entrypoint.py
+      # - ./config/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py
+      # - ./config/jupyter_jupyterlab_server_config.py:/etc/jupyter/jupyter_jupyterlab_server_config.py
+      # - ./config/entrypoint.sh:/entrypoint.sh
+      # - ./config/entrypoint.py:/entrypoint.py
       - ./export_files/:/export_files/
+    # entrypoint: ["start-singleuser.py"]
     depends_on:
       - db
 
@@ -40,13 +34,12 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-    environment:
-      - MYSQL_HOST=${MYSQL_HOST}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - ./config/entrypoint_db.sh:/entrypoint_db.sh
+      - ./export_files:/docker-entrypoint-initdb.d
+    env_file: .env
     restart:
       on-failure
+    # entrypoint: ["/bin/bash", "/entrypoint_db.sh"]
 
 networks:
   spyglass_network:
