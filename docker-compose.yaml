@@ -19,7 +19,6 @@ services:
       - ./config/.datajoint_config.json:${CONTAINER_DJ_CONFIG}
       - conda:/opt/conda
       # - ./config/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py
-      # - ./config/jupyter_jupyterlab_server_config.py:/etc/jupyter/jupyter_jupyterlab_server_config.py
       # - ./config/entrypoint.sh:/entrypoint.sh
       # - ./config/entrypoint.py:/entrypoint.py
     # entrypoint: ["/entrypoint.sh"]

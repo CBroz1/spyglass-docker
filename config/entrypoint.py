@@ -1,4 +1,7 @@
-"""Adjust datajoint config and environment variables for the container."""
+"""Adjust datajoint config and environment variables for the container.
+
+UNUSED
+"""
 
 import os
 

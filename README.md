@@ -1,5 +1,19 @@
 # Dockerizing a Spyglass Export
 
+## TODO
+
+Will ...
+
+1. Remove unused files.
+1. Add `Makefile` commands for publishing the docker image.
+1. Clean up `Dockerfile` commands with debug tools.
+1. Add snippet to send to collaborators.
+
+Maybe ...
+
+1. Workflow actions for publishing the docker image.
+1. Template repository for creating a new paper repository.
+
 ## Quick Start
 
 1. Install [Docker](https://docs.docker.com/get-docker/) and register for
@@ -8,16 +22,15 @@
 1. Copy `env.example` to `.env` and edit the values.
 1. Copy paper notebooks to `notebooks/`.
 1. Run `make build` to build the docker image.
-1. Navigate to `http://localhost:8888/lab`. Passwort is the paper ID.
+1. Navigate to `http://localhost:8888/lab`. Password is the paper ID.
 1. Test the notebooks.
 1. TBD: Run `make publish` to publish the image.
+1. TBD: Share the image with collaborators.
 
 ## Overview
 
-<!--TODO: REMOVE UNUSED FILES -->
 NOTE: Additional files not mentoned in this README are for development not
 currently in use.
-<!-- TODO: TEMPLATE REPOSITORY -->
 
 - `Makefile`: Contains commands for building and publishing the docker image.
   - `copy_files`: Copies the export `sql` and `yml` files to the

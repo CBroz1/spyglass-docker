@@ -29,9 +29,6 @@ RUN chown ${NB_UID} \
   ${HOME}/.jupyter/jupyter_server_config.py
 
 
-# copy sql files - delay loading while db builds
-# COPY export_files/*sql /
-# COPY config/entrypoint_db.sh /entrypoint_db.sh
 RUN apt update && apt install mysql-client -y # git vim -y # REMOVE?
 RUN rm -rf /var/lib/apt/lists/* # REDUCE IMAGE SIZE
 
@@ -55,9 +52,5 @@ SHELL ["/bin/bash", "-c"]
   # && pip install -e spyglass # REMOVE -e LATER
 
 # Adjust dj config to match env vars
-# COPY config/entrypoint.py /entrypoint.py
 RUN \
   conda run -n ${PAPER_ID} python -m ipykernel install --user --name=${PAPER_ID}
-  # conda run -n ${PAPER_ID} python /entrypoint.py
-
-# next step: entrypoint.sh
