@@ -3,6 +3,9 @@ services:
     build:
       context: .
       args:
+        - NB_USER
+        - USER_DIR
+        - SPYGLASS_BASE_DIR
         - PAPER_ID
         - MYSQL_USER
         - MYSQL_HOST
@@ -18,10 +21,6 @@ services:
       - ./notebooks:${CONTAINER_NOTEBOOK_DIR}
       - ./config/.datajoint_config.json:${CONTAINER_DJ_CONFIG}
       - conda:/opt/conda
-      # - ./config/jupyterhub_config.py:/etc/jupyterhub/jupyterhub_config.py
-      # - ./config/entrypoint.sh:/entrypoint.sh
-      # - ./config/entrypoint.py:/entrypoint.py
-    # entrypoint: ["/entrypoint.sh"]
     depends_on:
       - db
 

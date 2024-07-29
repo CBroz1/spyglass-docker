@@ -1,15 +1,19 @@
 """Adjust datajoint config and environment variables for the container.
 
-UNUSED
+Not necessary if the user is always 'jovyan'.
 """
 
 import os
+from sys import exit as sys_exit
 
 import datajoint as dj
 
+if os.getenv("NB_USER") == "jovyan":
+    sys_exit(0)
+
 # This is unnecessary if the user is always 'jovyan'
-base_dir = os.getenv("SPYGLASS_BASE_DIR", "/home/jovyan/data")
 user_dir = os.getenv("USER_DIR", "/home/jovyan")
+base_dir = os.getenv("SPYGLASS_BASE_DIR", "/home/jovyan/data")
 
 dj.config.load(f"{user_dir}/.datajoint_config.json")
 dj.config["custom"] = {"spyglass_dirs": {"base_dir": base_dir}}

@@ -3,3 +3,5 @@ temp*
 export_files/*yml
 export_files/*yaml
 export_files/*sql
+*checkpoint*
+.ipynb_checkpoints

@@ -1,24 +1,6 @@
 FROM quay.io/jupyter/base-notebook
-# FROM quay.io/jupyter/scipy-notebook
 
 USER root
-
-# Allow sudo - REMOVE LATER
-RUN echo "jovyan:jovyanpassword" | chpasswd
-RUN echo "jovyan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan
-
-# Add mysql credentials - REMOVE creds later, keep encoding
-ARG MYSQL_HOST
-ARG MYSQL_USER
-ARG MYSQL_ROOT_PASSWORD
-RUN echo -e "\
-[client]\n\
-host=${MYSQL_HOST}\n\
-user=${MYSQL_USER}\n\
-password=${MYSQL_ROOT_PASSWORD}\n\n\
-[mysqld]\n\
-character-set-server = latin1\n\
-collation-server = latin1_swedish_ci" > ${HOME}/.my.cnf
 
 # copy dj config, ensure user owned
 RUN mkdir -p ${HOME}/.jupyter
@@ -28,29 +10,55 @@ RUN chown ${NB_UID} \
   ${HOME}/.datajoint_config.json \
   ${HOME}/.jupyter/jupyter_server_config.py
 
-
-RUN apt update && apt install mysql-client -y # git vim -y # REMOVE?
+RUN apt update && apt install git -y
 RUN rm -rf /var/lib/apt/lists/* # REDUCE IMAGE SIZE
 
 USER ${NB_UID}
 
-# Install conda env if not already present
+# Install conda env if not already present then run entrypoint_hub.sh
 ARG PAPER_ID
+ARG NB_USER
+ARG USER_DIR
+ARG SPYGLASS_BASE_DIR
 ARG SPYGLASS_PAPER_DIR
+COPY config/entrypoint.py /entrypoint.py
+COPY config/entrypoint_hub.sh /entrypoint_hub.sh
 COPY export_files/environment.yml /environment.yml
-RUN if ! conda env list | grep -q ${PAPER_ID}; \
-  then mamba env create -f /environment.yml; fi \
+RUN conda update conda -y \
   && conda init bash \
-  && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
+  && mamba env create -f /environment.yml \
+  && echo "source activate ${PAPER_ID}" >> ~/.bashrc \
+  && conda run -n ${PAPER_ID} python /entrypoint.py
+ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
+# RUN conda init bash
+# RUN mamba env update -f /environment.yml
+# RUN echo "source activate ${PAPER_ID}" >> ~/.bashrc
+# RUN conda run -n ${PAPER_ID} python /entrypoint.py
+# ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
+# RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+# RUN echo "conda activate ${PAPER_ID}" >> ~/.bashrc
+# SHELL ["conda", "run", "--no-capture-output", "-n", "${PAPER_ID}", "/bin/bash", "-c"]
+# RUN /bin/bash -c "/entrypoint_hub.sh"
 # Activate shell for conda to work
-SHELL ["/bin/bash", "-c"]
-
-# Install latest spyglass? No, want specific version
-# git clone --branch <tag_name> # Where to load from?
-# RUN if [! -d "${HOME}/spyglass/" ]; then \
-#   git clone https://github.com/LorenFrankLab/spyglass.git; fi
-  # && pip install -e spyglass # REMOVE -e LATER
+# SHELL ["/bin/bash", "-c"]
+# ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
 
 # Adjust dj config to match env vars
-RUN \
-  conda run -n ${PAPER_ID} python -m ipykernel install --user --name=${PAPER_ID}
+# COPY config/entrypoint.py /entrypoint.py
+# COPY config/entrypoint_hub.sh /entrypoint_hub.sh
+# RUN /entrypoint_hub.sh
+# RUN /bin/bash -c "source ~/.bashrc \
+#   && conda init bash \
+#   && conda activate ${PAPER_ID} \
+#   && python -m ipykernel install --user --name=${PAPER_ID} \
+#   && python /entrypoint.py"
+
+# RUN conda init bash \
+#   && conda activate ${PAPER_ID} \
+# RUN python -m ipykernel install --user --name=${PAPER_ID} \
+#   && python /entrypoint.py
+# RUN \
+#   conda run -n ${PAPER_ID} "python -m ipykernel install --user --name=${PAPER_ID}" \
+#   && conda run -n ${PAPER_ID} python /entrypoint.py
+
+
