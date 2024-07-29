@@ -1,12 +1,8 @@
 services:
   hub:
-    build:
-      context: .
-      args:
-        - PAPER_ID
-      dockerfile: Docker_hub.Dockerfile
-    container_name: hub
+    container_name: collab_hub
     env_file: .env
+    image: "${HUB_IMAGE_NAME}"
     ports:
       - "8888:8888"
     volumes:
@@ -16,14 +12,8 @@ services:
       - db
 
   db:
-    build:
-      context: .
-      args:
-        - MYSQL_USER
-        - MYSQL_HOST
-        - MYSQL_ROOT_PASSWORD
-      dockerfile: Docker_db.Dockerfile
-    container_name: db
+    container_name: collab_db
+    image: "${DB_IMAGE_NAME}"
     env_file: .env
     ports:
       - "3306:3306"

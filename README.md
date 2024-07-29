@@ -4,7 +4,6 @@
 
 Will ...
 
-1. Remove unused files.
 1. Add `Makefile` commands for publishing the docker image.
 1. Clean up `Dockerfile` commands with debug tools.
 1. Add snippet to send to collaborators.
@@ -45,8 +44,10 @@ environment for replicating a paper's analyses.
 1. Run `make build` to build the docker image.
 1. Navigate to `http://localhost:8888/lab`, using the paper ID as the password.
 1. Test the notebooks.
-1. TBD: Run `make publish` to publish the image.
-1. TBD: Share the image with collaborators.
+1. Run `make publish` to publish the image.
+1. Share the image with collaborators, who can run `make run` to start the
+    container and visit the same URL. They will need (a) the `.env` file,
+    (b) the `docker-compose-collab.yml` file, and (c) the `Makefile`.
 
 [^2]: If your paper depends on a specific version of Spyglass or additional
     custom packages, please link to these in your notebooks. You can find the
@@ -66,12 +67,13 @@ environment for replicating a paper's analyses.
   - `hub`: Service. Jupyter notebook server container.
   - `conda`: Volume. Cache of the hub's conda environment.
   - `db_data`: Volume. Cache of the database's data.
+- `docker-compose-collab.yml`: Similar to `docker-compose.yml`, but using the
+  `hub` image from Docker Hub. This file is intended for collaborators.
 - `Dockerfile`: Adds additional instructions to the `hub` container.
   - Copies in datajoint and jupyter configuration files.
   - Installs `git` for possible git installs in the conda environment. For a
     faster build time, remove this line if no such installs are needed.
   - Installs the paper's conda environment.
-  - Adds the conda environment as an available kernel.
   - Runs `entrypoint.py` to configure the datajoint connection.
 - `env.example`: Example environment variables for the `.env` file. Must be
   copied to `.env` and edited.

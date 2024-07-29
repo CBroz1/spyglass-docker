@@ -1,6 +1,7 @@
 .PHONY: down
 up: check_env copy_files down only_up
 enter: check_env copy_files down only_up only_enter
+run: check_env only_run
 
 # Include .env file
 include .env
@@ -22,7 +23,6 @@ check_env:
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
-	# @cp -f ${SPYGLASS_PAPER_DIR}/spyglass_version ./export_files/
 
 # Tear down the container, if it is running
 down:
@@ -46,5 +46,11 @@ only_enter:
 # Publish to docker hub
 publish:
 	@docker login
-	@docker build . -t ${DOCKER_HUB_USER}/spyglass-export-${PAPER_ID}:latest
-	@docker push ${DOCKER_HUB_USER}/spyglass-export-${PAPER_ID}:latest
+	@docker build -f Docker_hub.Dockerfile . -t ${HUB_IMAGE_NAME}:latest
+	@docker build -f Docker_db.Dockerfile . -t ${DB_IMAGE_NAME}:latest
+	@docker push ${HUB_IMAGE_NAME}:latest
+	@docker push ${DB_IMAGE_NAME}:latest
+
+# Run the published container
+only_run:
+	@docker compose -f docker-compose-collab.yml up -d

@@ -16,7 +16,7 @@ set -e
 
 # Wait for MySQL to be ready
 for i in {30..0}; do # 30 second timeout
-  if mysqladmin ping -p"$MYSQL_PASSWORD" --silent; then
+  if mysqladmin ping -p"$MYSQL_ROOT_PASSWORD" --silent; then
     break
   fi
   echo "Waiting for MySQL ... $i"
