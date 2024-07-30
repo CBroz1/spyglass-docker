@@ -2,16 +2,9 @@
 
 ## TODO
 
-Will ...
-
-1. Add `Makefile` commands for publishing the docker image.
-1. Clean up `Dockerfile` commands with debug tools.
-1. Add snippet to send to collaborators.
-
-Maybe ...
-
-1. Workflow actions for publishing the docker image.
-1. Template repository for creating a new paper repository.
+1. Workflow actions for publishing the docker image? Too big for gh-actions
+1. Set repository as template when pushed to LorenFrankLab
+1. Discuss pros/cons of sender vs receiver running building the image.
 
 ## About
 
