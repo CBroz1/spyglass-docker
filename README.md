@@ -1,11 +1,5 @@
 # Dockerizing a Spyglass Export
 
-## TODO
-
-1. Workflow actions for publishing the docker image? Too big for gh-actions
-1. Set repository as template when pushed to LorenFrankLab
-1. Discuss pros/cons of sender vs receiver running building the image.
-
 ## About
 
 [Spyglass](lorenfranklab.github.io/spyglass/) is an open-source framework for
@@ -39,13 +33,18 @@ environment for replicating a paper's analyses.
 1. Test the notebooks.
 1. Run `make publish` to publish the image.
 1. Share the image with collaborators, who can run `make run` to start the
-    container and visit the same URL. They will need (a) the `.env` file,
-    (b) the `docker-compose-collab.yml` file, and (c) the `Makefile`.
+    container and visit the same URL. They will need ...
+    1. The `.env` file you used.
+    1. The `docker-compose-collab.yml` file for building from the published
+        images.
+    1. The `Makefile` for the command to run the container from the published
+        images.
 
 [^2]: If your paper depends on a specific version of Spyglass or additional
-    custom packages, please link to these in your notebooks. You can find the
-    version of Spyglass at the top of any `.sql` file, and find the link in the
-    list of [Spyglass tags](https://github.com/LorenFrankLab/spyglass/tags).
+    custom packages, please link to these in your notebooks, and ensure they are
+    included in the `environment.yml` file in the export directory. You can find
+    the version of Spyglass at the top of any `.sql` file, and find the link in
+    the list of [Spyglass tags](https://github.com/LorenFrankLab/spyglass/tags).
 
 ## Overview
 
