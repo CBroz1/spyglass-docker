@@ -1,4 +1,5 @@
 .PHONY: down
+build: up
 up: check_env copy_files down only_up
 enter: check_env copy_files down only_up only_enter
 run: check_env only_run
@@ -23,6 +24,10 @@ check_env:
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
+	@for file in ./export_files/*sql; do \
+		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
+		sed -i 's/ DEFAULT COLLATE [^ ]\w*//g' $${file}; \
+	done
 
 # Tear down the container, if it is running
 down:
@@ -36,8 +41,16 @@ down:
 	fi
 
 # Build the container, run sanity check ls
-only_up:
-	@docker compose up --build -d -t
+only_up: # needs timeout and error message
+	@docker compose up --build -d -t 300; \
+	exit_status=$$?; \
+	if [ $$exit_status -ne 0 ]; then \
+		echo "Container failed."; \
+		echo "Please check which container is not running (hub or db)"; \
+		echo "And run 'docker logs <container_name>' to see the error message."; \
+		exit 1; \
+	fi
+
 
 # Enter the container
 only_enter:

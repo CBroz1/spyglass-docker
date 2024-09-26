@@ -53,6 +53,7 @@ environment for replicating a paper's analyses.
     `export_data/` directory.
   - `down`: Stops and removes existing docker containers.
   - `up`: Runs `down`, then starts the docker container.
+  - `build`: Alias for `up`.
   - `enter`: Enters the running docker container for debugging.
 - `docker-compose.yml`: Defines the docker containers and volumes.
   - `db`: Service. MySQL database container.
@@ -86,18 +87,24 @@ By default the jupyter notebook server password is the paper ID variable.
 
 ## Troubleshooting
 
+If you encounter any issues, please check the status of the docker containers
+with `docker ps -a`. This will show the status of containers `db` and `hub`.
+If either is 'restarting', you can check the logs with `docker logs <name>`.
+
 ### Table Declaration
 
-If you see `OperationalError` when trying to import a table that may not be
-in your exported `sql` file, you may need to remove the charset sepecifications.
-This can be done with the following command(s) for each `sql` file:
+By default, the `Makefile` will copy the `sql` files to the `export_data/` and
+run the following commands on each file:
 
 ```bash
 sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' _Populate_YourPaper.sql
 sed -i 's/ DEFAULT COLLATE [^ ]\w*//g' _Populate_YourPaper.sql
 ```
 
-<details><summary>What will this do?</summary>
+This gets ahead of (a) `OperationalError` when trying to import a table or (b)
+SQL `ERROR 3780 (HY000)` in the docker logs.
+
+<details><summary>What does this do?</summary>
 
 These `sed` commands remove encoding specifications from the `sql` file(s).
 
