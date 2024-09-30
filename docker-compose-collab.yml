@@ -18,6 +18,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
+      - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
       - db_data:/var/lib/mysql
     restart:
       on-failure

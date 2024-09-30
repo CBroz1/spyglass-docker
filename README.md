@@ -28,6 +28,7 @@ environment for replicating a paper's analyses.
 1. Clone this repository to your local machine.
 1. Copy `env.example` to `.env` and edit the values.
 1. Copy the paper's notebooks to `notebooks/`[^2].
+1. Remove items from the `environment.yml` that require GPU support like `jax`.
 1. Run `make build` to build the docker image.
 1. Navigate to `http://localhost:8888/lab`, using the paper ID as the password.
 1. Test the notebooks.
@@ -78,6 +79,20 @@ environment for replicating a paper's analyses.
         - Sets the default kernel to the paper's conda environment.
         - Sets the server password.
 
+## Speed
+
+The first time you run `make build`, the docker image will be built from
+scratch. This can take a while, depending on the size of the conda environment.
+Subsequent builds will be faster, as docker will cache the layers.
+
+To speed up the process, projects that do not use the position pipeline can
+remove the line in `Docker_hub.Dockerfile` that installs `ffmpeg` and other
+dependencies.
+
+If your build is still slow, try removing unnecessary packages from your conda
+`environment.yml` file. Note that running `make build` will copy the file from
+it's original location.
+
 ## Security
 
 This repository is intended for use in a secure environment. It is not intended
@@ -90,6 +105,11 @@ By default the jupyter notebook server password is the paper ID variable.
 If you encounter any issues, please check the status of the docker containers
 with `docker ps -a`. This will show the status of containers `db` and `hub`.
 If either is 'restarting', you can check the logs with `docker logs <name>`.
+
+## Conda Fails
+
+If conda environment creation fails, you may need to remove items from
+the `environment.yml` that require GPU support like `jax`.
 
 ### Table Declaration
 
