@@ -21,12 +21,27 @@ check_env:
 	fi
 
 # Copy files from the paper directory to the export_files directory
+# Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
 	@for file in ./export_files/*sql; do \
-		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
-		sed -i 's/ DEFAULT COLLATE [^ ]\w*//g' $${file}; \
+		sed -i -e \
+		's/ DEFAULT CHARSET=[^ ]\w*//g' \
+		's/ DEFAULT COLLATE [^ ]\w*//g' $${file}; \
+		sed -i -e \
+		's/ `nwb_file_name` varchar(255)/ `nwb_file_name` varchar(64)/g' \
+		's/ `analysis_file_name` varchar(255)/ `analysis_file_name` varchar(64)/g' \
+		's/ `interval_list_name` varchar(200)/ `interval_list_name` varchar(170)/g' \
+		's/ `position_info_param_name` varchar(80)/ `position_info_param_name` varchar(32)/g' \
+		's/ `mark_param_name` varchar(80)/ `mark_param_name` varchar(32)/g' \
+		's/ `artifact_removed_interval_list_name` varchar(200)/ `artifact_removed_interval_list_name` varchar(128)/g' \
+		's/ `metric_params_name` varchar(200)/ `metric_params_name` varchar(64)/g' \
+		's/ `auto_curation_params_name` varchar(200)/ `auto_curation_params_name` varchar(36)/g' \
+		's/ `sort_interval_name` varchar(200)/ `sort_interval_name` varchar(64)/g' \
+		's/ `preproc_params_name` varchar(200)/ `preproc_params_name` varchar(32)/g' \
+		's/ `sorter` varchar(200)/ `sorter` varchar(32)/g' \
+		's/ `sorter_params_name` varchar(200)/ `sorter_params_name` varchar(64)/g' $${file}; \
 	done
 
 # Tear down the container, if it is running

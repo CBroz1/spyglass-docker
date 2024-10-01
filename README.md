@@ -106,12 +106,12 @@ If you encounter any issues, please check the status of the docker containers
 with `docker ps -a`. This will show the status of containers `db` and `hub`.
 If either is 'restarting', you can check the logs with `docker logs <name>`.
 
-## Conda Fails
+### Conda Fails
 
 If conda environment creation fails, you may need to remove items from
 the `environment.yml` that require GPU support like `jax`.
 
-### Table Declaration
+### Table Declaration, Collation
 
 By default, the `Makefile` will copy the `sql` files to the `export_data/` and
 run the following commands on each file:
@@ -146,6 +146,34 @@ The line with `ENGINE=InnoDB` should always end in `;`. It may or may not have
 a `COMMENT` field.
 
 </details>
+
+### Table Declaration, Key Length
+
+Spyglass instances declared before version 0.4.3 permit longer keys than MySQL
+defaults would permit. This may cause the import of downstream tables to error,
+reporing `Excessive key length`. By default, the `Makefile` will run the
+following command on each file, mirroring the adjustments from
+[PR #664](https://github.com/LorenFrankLab/spyglass/pull/664).
+
+```bash
+sed -i -e \
+'s/ `nwb_file_name` varchar(255)/ `nwb_file_name` varchar(64)/g' \
+'s/ `analysis_file_name` varchar(255)/ `analysis_file_name` varchar(64)/g' \
+'s/ `interval_list_name` varchar(200)/ `interval_list_name` varchar(170)/g' \
+'s/ `position_info_param_name` varchar(80)/ `position_info_param_name` varchar(32)/g' \
+'s/ `mark_param_name` varchar(80)/ `mark_param_name` varchar(32)/g' \
+'s/ `artifact_removed_interval_list_name` varchar(200)/ `artifact_removed_interval_list_name` varchar(128)/g' \
+'s/ `metric_params_name` varchar(200)/ `metric_params_name` varchar(64)/g' \
+'s/ `auto_curation_params_name` varchar(200)/ `auto_curation_params_name` varchar(36)/g' \
+'s/ `sort_interval_name` varchar(200)/ `sort_interval_name` varchar(64)/g' \
+'s/ `preproc_params_name` varchar(200)/ `preproc_params_name` varchar(32)/g' \
+'s/ `sorter` varchar(200)/ `sorter` varchar(32)/g' \
+'s/ `sorter_params_name` varchar(200)/ `sorter_params_name` varchar(64)/g' _Populate_YourPaper.sql
+```
+
+This may result in being unable to import keys longer than the specified length.
+If you encounter this issue, you may need to adjust the `sed` commands in
+the `Makefile` to match the keys in your `sql` files.
 
 ## Elevated Access
 

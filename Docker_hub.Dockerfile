@@ -10,18 +10,22 @@ RUN chown ${NB_UID} \
   ${HOME}/.datajoint_config.json \
   ${HOME}/.jupyter/jupyter_server_config.py
 
-RUN apt update && apt install git -y
-RUN rm -rf /var/lib/apt/lists/* # REDUCE IMAGE SIZE
+# Install git for convenience and others for position pipeline
+RUN apt update \
+  && apt-get install git -y \
+  && apt-get install ffmpeg libsm6 libxext6  -y \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* # REDUCE IMAGE SIZE
 
 USER ${NB_UID}
 
-# Install conda env if not already present then run entrypoint.py
+# Install conda env if not already present
 ARG PAPER_ID
 COPY export_files/environment.yml /environment.yml
 RUN conda update conda -y \
   && conda init bash \
   && mamba env create -f /environment.yml \
-  && echo "source activate ${PAPER_ID}" >> ~/.bashrc
+  && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
 ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
 
 ADD --chown=${NB_UID}:${NB_GID} notebooks ${HOME}/notebooks/
