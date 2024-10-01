@@ -23,10 +23,10 @@ check_env:
 # Copy files from the paper directory to the export_files directory
 # Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
-	# @cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
-	# @cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
+	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
+	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
 	@for file in ./export_files/*sql; do \
-		sed -i -e 's/ DEFAULT CHARSET=[^ ]\w*//g' \
+		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
 		sed -i 's/ DEFAULT COLLATE [^ ]\w*//g' $${file}; \
 		sed -i 's/ `nwb_file_name` varchar(255)/ `nwb_file_name` varchar(64)/g' $${file}; \
 		sed -i 's/ `analysis_file_name` varchar(255)/ `analysis_file_name` varchar(64)/g' $${file}; \
