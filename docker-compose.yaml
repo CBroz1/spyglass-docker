@@ -22,6 +22,7 @@ services:
         - MYSQL_USER
         - MYSQL_HOST
         - MYSQL_ROOT_PASSWORD
+        - MYSQL_ROOT_HOST
       dockerfile: Docker_db.Dockerfile
     container_name: db
     env_file: .env
@@ -30,6 +31,7 @@ services:
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
       - db_data:/var/lib/mysql
+      - ./grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
     restart:
       on-failure
 
