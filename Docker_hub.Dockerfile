@@ -11,11 +11,18 @@ RUN chown ${NB_UID} \
   ${HOME}/.jupyter/jupyter_server_config.py
 
 # Install git for convenience and others for position pipeline
-RUN apt update \
-  && apt-get install git -y \
-  && apt-get install ffmpeg libsm6 libxext6  -y \
+RUN apt-get update \
+  && apt-get install -y \
+    git \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    build-essential \
+    g++ \
+    libgl1 \
+    libglib2.0-0 \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* # REDUCE IMAGE SIZE
+  && rm -rf /var/lib/apt/lists/*
 
 USER ${NB_UID}
 
@@ -30,3 +37,4 @@ ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
 
 ADD --chown=${NB_UID}:${NB_GID} notebooks ${HOME}/notebooks/
 
+RUN python -m ipykernel install --user --name ${PAPER_ID} --display-name "Python (${PAPER_ID})"
