@@ -31,7 +31,7 @@ services:
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
       - db_data:/var/lib/mysql
-      - ./grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
+      - ./config/grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
     restart:
       on-failure
 
