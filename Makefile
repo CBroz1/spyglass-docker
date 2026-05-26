@@ -1,4 +1,4 @@
-.PHONY: down clean stop port
+.PHONY: down clean stop port quick-build
 build: up
 up: check_env copy_files down only_up
 enter: check_env copy_files down only_up only_enter
@@ -82,6 +82,9 @@ only_up: # needs timeout and error message
 # Enter the container
 only_enter:
 	@docker exec -it ${PAPER_ID}_hub /bin/bash
+
+# Rebuild hub image only, skipping copy_files and teardown (for debugging)
+quick-build: check_env only_up
 
 # Print the JupyterLab URL for this paper
 port:

@@ -37,11 +37,13 @@ environment for replicating a paper's analyses.
 1. Navigate to the printed URL (e.g. `http://localhost:12345/lab`), using the
     paper ID as the password. Wait ~30 seconds after build for the server to start.
 1. Test the notebooks.
-1. When finished, run `make down` to stop the containers.
+1. When finished, run `make down` to stop or `make clean` to stop and remove all
+    cached data (see [Teardown](#teardown)).
 1. Run `make publish` to publish the image.
 1. Share the image with collaborators, who can run `make run` to start the
     container and visit the same URL (run `make port` to get it). When finished,
-    they should run `make stop` to tear down. They will need ...
+    they should run `make stop` to stop or `make clean` to stop and remove all
+    cached data. They will need ...
     1. The `.env` file you used.
     1. The `docker-compose-collab.yml` file for building from the published
         images.
@@ -99,9 +101,9 @@ To speed up the process, projects that do not use the position pipeline can
 remove the line in `Docker_hub.Dockerfile` that installs `ffmpeg` and other
 dependencies.
 
-If your build is still slow, try removing unnecessary packages from your conda
-`environment.yml` file. Note that running `make build` will copy the file from
-it's original location.
+If your build is still slow, or errors with conflicting packages, try removing
+unnecessary packages from your conda `environment.yml` file. Note that running
+`make build` will copy the file from it's original location.
 
 ## Security
 
@@ -110,6 +112,49 @@ for use in a production environment.
 
 By default the jupyter notebook server password is the paper ID variable.
 
+## Teardown
+
+There are two levels of teardown depending on whether you want to free disk space
+or just stop the running services.
+
+| Command | Who | Stops containers | Removes volumes |
+|---|---|:---:|:---:|
+| `make down` | Author | ✓ | |
+| `make stop` | Collaborator | ✓ | |
+| `make clean` | Either | ✓ | ✓ |
+
+**Stopping containers** (`make down` / `make stop`) frees CPU and memory but
+keeps the conda environment and database cached on disk. Restarting later with
+`make build` or `make run` will skip the slow conda install and database import.
+
+**Removing volumes** (`make clean`) frees all disk space used by this paper's
+environment. The next `make build` or `make run` will rebuild from scratch,
+including a full conda install (20–40 minutes).
+
+<details><summary>What is stored in each volume?</summary>
+
+Docker volumes are directories managed by Docker, stored outside the project
+folder (typically under `/var/lib/docker/volumes/`). Three volumes are created
+per paper, each named with your `PAPER_ID` as a prefix:
+
+- **`${PAPER_ID}_conda`** — the full conda environment (~5–15 GB depending on
+  packages). Removing this means the next build re-downloads and re-installs all
+  packages. Keep this if you expect to restart the container again soon.
+- **`${PAPER_ID}_notebooks`** — any edits made to notebooks inside the running
+  container are saved here. **Remove this only if you are sure you no longer need
+  those edits**, or have saved them elsewhere.
+- **`${PAPER_ID}_db_data`** — the MySQL database populated from the exported
+  `.sql` files. Removing this means the next start re-imports the database from
+  scratch (typically fast, a few minutes).
+
+To inspect volume sizes before deciding:
+
+```bash
+docker system df -v | grep ${PAPER_ID}
+```
+
+</details>
+
 ## Troubleshooting
 
 If you encounter any issues, please check the status of the docker containers
@@ -117,33 +162,6 @@ with `docker ps -a`. This will show the status of containers `${PAPER_ID}_db`
 and `${PAPER_ID}_hub`. If either is 'restarting', check the logs with
 `docker logs <name>`. Use `make enter` to open a shell inside the running hub
 container for further debugging.
-
-### mamba: Permission denied writing temp file
-
-If you see an error like:
-
-```
-error    libmamba Error opening for writing "/mamba...": Permission denied
-ERROR: Could not open requirements file: [Errno 2] No such file or directory
-```
-
-mamba writes a temporary pip requirements file next to `environment.yml`. If
-`environment.yml` is placed at `/environment.yml`, mamba tries to write to `/`,
-which is not allowed for non-root users. The fix is already applied in
-`Docker_hub.Dockerfile` (copying to `/tmp/environment.yml`). If you see this
-error, ensure you are using an up-to-date copy of this repository.
-
-### spyglass-neuro version not found on PyPI
-
-If pip reports:
-
-```
-ERROR: Could not find a version that satisfies the requirement spyglass-neuro==X.Y.ZaN.devN+...
-```
-
-Dev builds are not published to PyPI. The `copy_files` step in the Makefile
-strips `.dev...` suffixes automatically. Ensure you are running `make build`
-(not building the Docker image directly) so the `copy_files` step runs first.
 
 ### Conda Fails
 
@@ -262,5 +280,125 @@ Each `ARG` item must also be added to the `docker-compose.yml` file under the
 ```
 
 And add `GRANT_SUDO=yes` to the `.env` file.
+
+</details>
+
+## For Developers
+
+This section covers features intended for those maintaining or debugging this
+repository, rather than end users running a published paper environment.
+
+- **BuildKit cache mounts** — persists conda/pip packages across builds so
+  re-running `make build` after small `environment.yml` changes doesn't
+  re-download everything.
+- **`make quick-build`** — rebuilds the hub image without re-copying files from
+  the paper directory or tearing down running containers. Use when iterating on
+  config or Dockerfile changes and `export_files/` is already up to date.
+- **`make enter`** — opens a bash shell inside the running hub container. Useful
+  for inspecting the conda environment, testing imports, or checking file paths.
+- **Port hashing** — `PAPER_ID` is hashed (SHA-256, range 10240–60000) to assign
+  unique host ports, allowing multiple papers to run concurrently on shared
+  infrastructure without manual port coordination.
+
+<details><summary>BuildKit cache mounts</summary>
+
+`Docker_hub.Dockerfile` uses `--mount=type=cache` on the `mamba env create` step:
+
+```dockerfile
+RUN --mount=type=cache,target=/opt/conda/pkgs,uid=1000 \
+    --mount=type=cache,target=/home/jovyan/.cache/pip,uid=1000 \
+    conda update conda -y \
+  && conda init bash \
+  && mamba env create -f /tmp/environment.yml \
+  && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
+```
+
+The two cache mounts:
+
+- `/opt/conda/pkgs` — mamba's downloaded package tarballs. Reused on the next
+  build, so only changed or new packages are fetched.
+- `/home/jovyan/.cache/pip` — pip's HTTP cache. Same benefit for the pip section
+  of `environment.yml`.
+
+The mounts are **host-side caches** that do not become part of the image layer —
+the final image is identical to one built without them. They persist across `make
+clean` (which only removes named volumes, not BuildKit cache) and are scoped to
+the host's Docker cache.
+
+Requires Docker Engine ≥ 23 or Docker Desktop (BuildKit is enabled by default).
+If you see `unknown flag: --mount`, add `# syntax=docker/dockerfile:1` as the
+first line of the Dockerfile and ensure BuildKit is active:
+`DOCKER_BUILDKIT=1 make build`.
+
+</details>
+
+<details><summary>make quick-build</summary>
+
+```
+make quick-build
+```
+
+Equivalent to running `docker compose up --build -d` directly — skips the
+`copy_files` step (which re-copies `environment.yml` and `.sql` files from the
+paper directory) and skips `down` (which tears down running containers).
+
+**When to use:** You've already run `make build` at least once, `export_files/`
+contains the correct files, and you're iterating on changes to
+`Docker_hub.Dockerfile`, `config/`, or `notebooks/` that don't require
+re-exporting from the paper directory.
+
+**When not to use:** If `environment.yml` or the `.sql` files in the paper
+directory have changed since the last `make build`, run `make build` instead so
+`copy_files` re-copies and patches them.
+
+Docker's layer cache means that if `environment.yml` has not changed, the slow
+mamba layer is skipped automatically — even with `make quick-build`, a cache
+hit on that layer completes in seconds.
+
+</details>
+
+<details><summary>make enter</summary>
+
+```
+make enter
+```
+
+Note: `make enter` (no arguments) is the full build-then-enter flow. To enter an
+**already-running** container without rebuilding, run:
+
+```bash
+docker exec -it ${PAPER_ID}_hub /bin/bash
+```
+
+Once inside, the paper conda environment is on `PATH`. Useful commands:
+
+```bash
+conda list                          # inspect installed packages
+python -c "import spyglass"         # test an import
+jupyter kernelspec list             # verify the paper kernel is registered
+cat /tmp/environment.yml            # inspect the patched environment spec
+```
+
+</details>
+
+<details><summary>Port hashing</summary>
+
+Each paper's JupyterLab and MySQL ports are derived deterministically from
+`PAPER_ID` using SHA-256:
+
+```python
+import hashlib
+h = hashlib.sha256(PAPER_ID.encode()).hexdigest()
+HUB_PORT = 10240 + (int(h, 16) % 49761)   # range: 10240–60000
+DB_PORT  = 10240 + (int(hashlib.sha256((PAPER_ID + "_db").encode()).hexdigest(), 16) % 49761)
+```
+
+This mirrors the logic in `spyglass/tests/container.py:DockerMySQLManager.string_to_port`.
+The 49,761-port range gives a collision probability of ~0.006% at 3 concurrent
+users — negligible for the expected usage of this repository.
+
+Ports are computed in the Makefile and exported as `HUB_PORT`/`DB_PORT` so that
+`docker compose` can substitute them into `docker-compose.yaml`. Run `make port`
+to print the URL for the current `PAPER_ID`.
 
 </details>

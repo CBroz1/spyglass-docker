@@ -29,7 +29,9 @@ USER ${NB_UID}
 # Install conda env if not already present
 ARG PAPER_ID
 COPY export_files/environment.yml /tmp/environment.yml
-RUN conda update conda -y \
+RUN --mount=type=cache,target=/opt/conda/pkgs,uid=1000 \
+    --mount=type=cache,target=/home/jovyan/.cache/pip,uid=1000 \
+    conda update conda -y \
   && conda init bash \
   && mamba env create -f /tmp/environment.yml \
   && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
