@@ -28,10 +28,10 @@ USER ${NB_UID}
 
 # Install conda env if not already present
 ARG PAPER_ID
-COPY export_files/environment.yml /environment.yml
+COPY export_files/environment.yml /tmp/environment.yml
 RUN conda update conda -y \
   && conda init bash \
-  && mamba env create -f /environment.yml \
+  && mamba env create -f /tmp/environment.yml \
   && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
 ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
 
