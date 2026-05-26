@@ -1,4 +1,4 @@
-.PHONY: down
+.PHONY: down clean stop port
 build: up
 up: check_env copy_files down only_up
 enter: check_env copy_files down only_up only_enter
@@ -7,10 +7,16 @@ run: check_env only_run
 # Include .env file
 include .env
 
+# Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
+HUB_PORT := $(shell python3 -c "import hashlib; h=hashlib.sha256('$(PAPER_ID)'.encode()).hexdigest(); print(10240 + (int(h,16) % 49761))")
+DB_PORT  := $(shell python3 -c "import hashlib; h=hashlib.sha256('$(PAPER_ID)_db'.encode()).hexdigest(); print(10240 + (int(h,16) % 49761))")
+export HUB_PORT
+export DB_PORT
+
 # Helpers
-IS_RUNNING=$(shell docker ps --filter "name=hub" --filter "status=running" -q)
-DOCKER_EXEC_SH = docker exec -it hub /bin/bash -c
-DOCKER_EXEC_SQL = docker exec -it hub mysql -e
+IS_RUNNING=$(shell docker ps --filter "name=${PAPER_ID}_hub" --filter "status=running" -q)
+DOCKER_EXEC_SH = docker exec -it ${PAPER_ID}_hub /bin/bash -c
+DOCKER_EXEC_SQL = docker exec -it ${PAPER_ID}_hub mysql -e
 
 # Check for .env file
 check_env:
@@ -24,6 +30,7 @@ check_env:
 # Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
+	@sed -i '/spyglass-neuro/ s/\([0-9]*\.[0-9]*\.[0-9]*\)[a-zA-Z][0-9]*\.dev[^ ]*/\1/' ./export_files/environment.yml
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
 	@for file in ./export_files/*sql; do \
 		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
@@ -47,11 +54,15 @@ down:
 	@if [ -z "$(IS_RUNNING)" ]; then \
 		echo "The container is not running."; \
 	else \
-		docker stop hub; \
-		docker rm hub; \
-		docker stop db; \
-		docker rm db; \
+		docker stop ${PAPER_ID}_hub; \
+		docker rm ${PAPER_ID}_hub; \
+		docker stop ${PAPER_ID}_db; \
+		docker rm ${PAPER_ID}_db; \
 	fi
+
+# Remove containers and all associated volumes (full teardown)
+clean: down
+	@docker volume rm ${PAPER_ID}_conda ${PAPER_ID}_notebooks ${PAPER_ID}_db_data 2>/dev/null || true
 
 # Build the container, run sanity check ls
 only_up: # needs timeout and error message
@@ -59,15 +70,26 @@ only_up: # needs timeout and error message
 	exit_status=$$?; \
 	if [ $$exit_status -ne 0 ]; then \
 		echo "Container failed."; \
-		echo "Please check which container is not running (hub or db)"; \
+		echo "Please check which container is not running (${PAPER_ID}_hub or ${PAPER_ID}_db)"; \
 		echo "And run 'docker logs <container_name>' to see the error message."; \
 		exit 1; \
-	fi
+	fi; \
+	echo ""; \
+	echo "JupyterLab available at: http://localhost:$(HUB_PORT)/lab"; \
+	echo "Password: ${PAPER_ID}"
 
 
 # Enter the container
 only_enter:
-	@docker exec -it hub /bin/bash
+	@docker exec -it ${PAPER_ID}_hub /bin/bash
+
+# Print the JupyterLab URL for this paper
+port:
+	@echo "http://localhost:$(HUB_PORT)/lab"
+
+# Stop collaborator containers (make run)
+stop:
+	@docker compose -f docker-compose-collab.yml down
 
 # Publish to docker hub
 publish:

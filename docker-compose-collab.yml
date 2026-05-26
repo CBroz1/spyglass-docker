@@ -1,25 +1,25 @@
 services:
   hub:
-    container_name: collab_hub
+    container_name: ${PAPER_ID}_hub
     env_file: .env
     image: "${HUB_IMAGE_NAME}"
     ports:
-      - "8888:8888"
+      - "${HUB_PORT}:8888"
     volumes:
-      - conda:/opt/conda
-      - notebooks:/home/joyvan/notebooks
+      - ${PAPER_ID}_conda:/opt/conda
+      - ${PAPER_ID}_notebooks:/home/jovyan/notebooks
     depends_on:
       - db
 
   db:
-    container_name: collab_db
+    container_name: ${PAPER_ID}_db
     image: "${DB_IMAGE_NAME}"
     env_file: .env
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:3306"
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      - db_data:/var/lib/mysql
+      - ${PAPER_ID}_db_data:/var/lib/mysql
     restart:
       on-failure
 
@@ -28,7 +28,6 @@ networks:
     name: spyglass_net
 
 volumes: # Docker managed mappings.
-  conda: # Saves time declaring env
-  notebooks: # Saves user notebook edits
-  db_data: # Allows persistent db data
-
+  ${PAPER_ID}_conda: # Saves time declaring env
+  ${PAPER_ID}_notebooks: # Saves user notebook edits
+  ${PAPER_ID}_db_data: # Allows persistent db data

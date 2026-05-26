@@ -5,13 +5,13 @@ services:
       args:
         - PAPER_ID
       dockerfile: Docker_hub.Dockerfile
-    container_name: hub
+    container_name: ${PAPER_ID}_hub
     env_file: .env
     ports:
-      - "8888:8888"
+      - "${HUB_PORT}:8888"
     volumes:
-      - conda:/opt/conda
-      - notebooks:/home/joyvan/notebooks
+      - ${PAPER_ID}_conda:/opt/conda
+      - ${PAPER_ID}_notebooks:/home/jovyan/notebooks
     depends_on:
       - db
 
@@ -24,13 +24,13 @@ services:
         - MYSQL_ROOT_PASSWORD
         - MYSQL_ROOT_HOST
       dockerfile: Docker_db.Dockerfile
-    container_name: db
+    container_name: ${PAPER_ID}_db
     env_file: .env
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:3306"
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      - db_data:/var/lib/mysql
+      - ${PAPER_ID}_db_data:/var/lib/mysql
       - ./config/grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
     restart:
       on-failure
@@ -40,7 +40,6 @@ networks:
     name: spyglass_net
 
 volumes: # Docker managed mappings.
-  conda: # Saves time declaring env
-  notebooks: # Saves user notebook edits
-  db_data: # Allows persistent db data
-
+  ${PAPER_ID}_conda: # Saves time declaring env
+  ${PAPER_ID}_notebooks: # Saves user notebook edits
+  ${PAPER_ID}_db_data: # Allows persistent db data

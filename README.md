@@ -17,24 +17,31 @@ environment for replicating a paper's analyses.
 
 ## Quick Start
 
-1. Pre-requisites: `make` and `docker`.
+1. Pre-requisites: `make`, `docker`, and Docker Compose v2.
     - `make` is available on most Unix systems as part of
     [GNU Make](https://www.gnu.org/software/make/), or available with
     `choco` (Windows) or `brew` (macOS).
     - [Docker](https://docs.docker.com/get-docker/) builds, runs, and manages
-    containers.
+    containers. Docker Compose v2 is required (`docker compose`, not
+    `docker-compose`). It ships with Docker Desktop and Docker Engine ≥ 20.10.
+    Verify with: `docker compose version`.
 1. Register for [Docker Hub](https://hub.docker.com/signup) and run
     `docker login`.
 1. Clone this repository to your local machine.
-1. Copy `env.example` to `.env` and edit the values.
+1. Copy `example.env` to `.env` and edit the values.
 1. Copy the paper's notebooks to `notebooks/`[^2].
 1. Remove items from the `environment.yml` that require GPU support like `jax`.
-1. Run `make build` to build the docker image.
-1. Navigate to `http://localhost:8888/lab`, using the paper ID as the password.
+1. Run `make build` to build the docker image. This can take 20–40 minutes the
+    first time. When complete, the JupyterLab URL will be printed automatically.
+    Run `make port` at any time to reprint it.
+1. Navigate to the printed URL (e.g. `http://localhost:12345/lab`), using the
+    paper ID as the password. Wait ~30 seconds after build for the server to start.
 1. Test the notebooks.
+1. When finished, run `make down` to stop the containers.
 1. Run `make publish` to publish the image.
 1. Share the image with collaborators, who can run `make run` to start the
-    container and visit the same URL. They will need ...
+    container and visit the same URL (run `make port` to get it). When finished,
+    they should run `make stop` to tear down. They will need ...
     1. The `.env` file you used.
     1. The `docker-compose-collab.yml` file for building from the published
         images.
@@ -51,25 +58,28 @@ environment for replicating a paper's analyses.
 
 - `Makefile`: Contains commands for building and publishing the docker image.
   - `copy_files`: Copies the export `sql` and `yml` files to the
-    `export_data/` directory.
+    `export_files/` directory.
   - `down`: Stops and removes existing docker containers.
+  - `clean`: Runs `down`, then removes all associated Docker volumes (full teardown).
   - `up`: Runs `down`, then starts the docker container.
   - `build`: Alias for `up`.
   - `enter`: Enters the running docker container for debugging.
-- `docker-compose.yml`: Defines the docker containers and volumes.
+  - `port`: Prints the JupyterLab URL for this paper.
+  - `stop`: Stops the collaborator containers started by `make run`.
+- `docker-compose.yaml`: Defines the docker containers and volumes.
   - `db`: Service. MySQL database container.
   - `hub`: Service. Jupyter notebook server container.
-  - `conda`: Volume. Cache of the hub's conda environment.
-  - `db_data`: Volume. Cache of the database's data.
-- `docker-compose-collab.yml`: Similar to `docker-compose.yml`, but using the
+  - `${PAPER_ID}_conda`: Volume. Cache of the hub's conda environment.
+  - `${PAPER_ID}_db_data`: Volume. Cache of the database's data.
+- `docker-compose-collab.yml`: Similar to `docker-compose.yaml`, but using the
   `hub` image from Docker Hub. This file is intended for collaborators.
-- `Dockerfile`: Adds additional instructions to the `hub` container.
+- `Docker_hub.Dockerfile`: Adds additional instructions to the `hub` container.
   - Copies in datajoint and jupyter configuration files.
   - Installs `git` for possible git installs in the conda environment. For a
     faster build time, remove this line if no such installs are needed.
   - Installs the paper's conda environment.
   - Runs `entrypoint.py` to configure the datajoint connection.
-- `env.example`: Example environment variables for the `.env` file. Must be
+- `example.env`: Example environment variables for the `.env` file. Must be
   copied to `.env` and edited.
 - `config`: Contains additional configuration files.
   - `.datajoint_config.py`: Default configuration for the datajoint connection.
@@ -103,8 +113,37 @@ By default the jupyter notebook server password is the paper ID variable.
 ## Troubleshooting
 
 If you encounter any issues, please check the status of the docker containers
-with `docker ps -a`. This will show the status of containers `db` and `hub`.
-If either is 'restarting', you can check the logs with `docker logs <name>`.
+with `docker ps -a`. This will show the status of containers `${PAPER_ID}_db`
+and `${PAPER_ID}_hub`. If either is 'restarting', check the logs with
+`docker logs <name>`. Use `make enter` to open a shell inside the running hub
+container for further debugging.
+
+### mamba: Permission denied writing temp file
+
+If you see an error like:
+
+```
+error    libmamba Error opening for writing "/mamba...": Permission denied
+ERROR: Could not open requirements file: [Errno 2] No such file or directory
+```
+
+mamba writes a temporary pip requirements file next to `environment.yml`. If
+`environment.yml` is placed at `/environment.yml`, mamba tries to write to `/`,
+which is not allowed for non-root users. The fix is already applied in
+`Docker_hub.Dockerfile` (copying to `/tmp/environment.yml`). If you see this
+error, ensure you are using an up-to-date copy of this repository.
+
+### spyglass-neuro version not found on PyPI
+
+If pip reports:
+
+```
+ERROR: Could not find a version that satisfies the requirement spyglass-neuro==X.Y.ZaN.devN+...
+```
+
+Dev builds are not published to PyPI. The `copy_files` step in the Makefile
+strips `.dev...` suffixes automatically. Ensure you are running `make build`
+(not building the Docker image directly) so the `copy_files` step runs first.
 
 ### Conda Fails
 
@@ -113,7 +152,7 @@ the `environment.yml` that require GPU support like `jax`.
 
 ### Table Declaration, Collation
 
-By default, the `Makefile` will copy the `sql` files to the `export_data/` and
+By default, the `Makefile` will copy the `sql` files to the `export_files/` and
 run the following commands on each file:
 
 ```bash
