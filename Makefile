@@ -30,7 +30,7 @@ check_env:
 # Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
-	@sed -i '/spyglass-neuro/ s/\([0-9]*\.[0-9]*\.[0-9]*\)[a-zA-Z][0-9]*\.dev[^ ]*/\1/' ./export_files/environment.yml
+	@sed -i '/spyglass-neuro.*+g/ s|spyglass-neuro==\([^+]*\)+g\([0-9a-f]*\)[^ ]*|spyglass-neuro @ git+https://github.com/LorenFrankLab/spyglass@\2|' ./export_files/environment.yml
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
 	@for file in ./export_files/*sql; do \
 		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
