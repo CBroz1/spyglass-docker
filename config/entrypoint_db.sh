@@ -27,6 +27,13 @@ for i in {30..0}; do # 30 second timeout
   fi
 done
 
+# Grant remote root access using env-provided credentials
+mysql -u"$MYSQL_USER" -p"$MYSQL_ROOT_PASSWORD" <<EOF
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'${MYSQL_ROOT_HOST}' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO '${MYSQL_USER}'@'${MYSQL_ROOT_HOST}' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EOF
+
 # Execute all SQL scripts in the initialization directory
 for f in /docker-entrypoint-initdb.d/*.sql; do
   echo "Running $f..."

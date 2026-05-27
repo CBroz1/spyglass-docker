@@ -4,22 +4,26 @@ services:
     env_file: .env
     image: "${HUB_IMAGE_NAME}"
     ports:
-      - "${HUB_PORT}:8888"
+      - "${SPYGLASS_HUB_PORT}:8888"
     volumes:
       - conda:/opt/conda
       - notebooks:/home/jovyan/notebooks
     depends_on:
       - db
+    networks:
+      - spyglass_network
 
   db:
     container_name: ${PAPER_ID}_db
     image: "${DB_IMAGE_NAME}"
     env_file: .env
     ports:
-      - "${DB_PORT}:3306"
+      - "${SPYGLASS_DB_PORT}:3306"
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
       - db_data:/var/lib/mysql
+    networks:
+      - spyglass_network
     restart:
       on-failure
 

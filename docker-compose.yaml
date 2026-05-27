@@ -8,12 +8,14 @@ services:
     container_name: ${PAPER_ID}_hub
     env_file: .env
     ports:
-      - "${HUB_PORT}:8888"
+      - "${SPYGLASS_HUB_PORT}:8888"
     volumes:
       - conda:/opt/conda
       - notebooks:/home/jovyan/notebooks
     depends_on:
       - db
+    networks:
+      - spyglass_network
 
   db:
     build:
@@ -27,11 +29,12 @@ services:
     container_name: ${PAPER_ID}_db
     env_file: .env
     ports:
-      - "${DB_PORT}:3306"
+      - "${SPYGLASS_DB_PORT}:3306"
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
       - db_data:/var/lib/mysql
-      - ./config/grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
+    networks:
+      - spyglass_network
     restart:
       on-failure
 

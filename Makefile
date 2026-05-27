@@ -14,10 +14,11 @@ SPYGLASS_CONDA_ENV ?= spyglass
 
 # Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
 # Skip if already set in environment (allows callers to override ports)
+# Use = (deferred) so conda run only executes when a target actually needs the ports
 ifndef SPYGLASS_HUB_PORT
-_PORTS            := $(shell conda run -n $(SPYGLASS_CONDA_ENV) python ./config/hash_port.py "$(PAPER_ID)")
-SPYGLASS_HUB_PORT := $(word 1,$(_PORTS))
-SPYGLASS_DB_PORT  := $(word 2,$(_PORTS))
+_PORTS            = $(shell conda run -n $(SPYGLASS_CONDA_ENV) python ./config/hash_port.py "$(PAPER_ID)")
+SPYGLASS_HUB_PORT = $(word 1,$(_PORTS))
+SPYGLASS_DB_PORT  = $(word 2,$(_PORTS))
 endif
 export SPYGLASS_HUB_PORT
 export SPYGLASS_DB_PORT
@@ -76,7 +77,8 @@ only_enter:
 	@docker exec -it ${PAPER_ID}_hub /bin/bash
 
 # Rebuild hub image only, skipping copy_files and teardown (for debugging)
-quick-build: check_env only_up
+quick-build: check_env
+	@docker compose up --build -d -t 300 hub
 
 # Print the JupyterLab URL for this paper
 port:

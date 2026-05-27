@@ -373,8 +373,8 @@ Each paper's JupyterLab and MySQL ports are derived deterministically from
 ```python
 import hashlib
 h = hashlib.sha256(PAPER_ID.encode()).hexdigest()
-HUB_PORT = 10240 + (int(h, 16) % 49761)   # range: 10240–60000
-DB_PORT  = 10240 + (int(hashlib.sha256((PAPER_ID + "_db").encode()).hexdigest(), 16) % 49761)
+SPYGLASS_HUB_PORT = 10240 + (int(h, 16) % 49761)   # range: 10240–60000
+SPYGLASS_DB_PORT  = 10240 + (int(hashlib.sha256((PAPER_ID + "_db").encode()).hexdigest(), 16) % 49761)
 ```
 
 This mirrors the logic in
@@ -382,9 +382,10 @@ This mirrors the logic in
 range gives a collision probability of ~0.006% at 3 concurrent users —
 negligible for the expected usage of this repository.
 
-Ports are computed in the Makefile and exported as `HUB_PORT`/`DB_PORT` so that
-`docker compose` can substitute them into `docker-compose.yaml`. Run `make port`
-to print the URL for the current `PAPER_ID`.
+Ports are computed in the Makefile and exported as
+`SPYGLASS_HUB_PORT`/`SPYGLASS_DB_PORT` so that `docker compose` can substitute
+them into `docker-compose.yaml`. Run `make port` to print the URL for the
+current `PAPER_ID`.
 
 </details>
 
