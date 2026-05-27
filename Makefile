@@ -13,11 +13,14 @@ export DOCKER_BUILDKIT := 1
 SPYGLASS_CONDA_ENV ?= spyglass
 
 # Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
-_PORTS   := $(shell conda run -n $(SPYGLASS_CONDA_ENV) python ./config/hash_port.py "$(PAPER_ID)")
-HUB_PORT := $(word 1,$(_PORTS))
-DB_PORT  := $(word 2,$(_PORTS))
-export HUB_PORT
-export DB_PORT
+# Skip if already set in environment (allows callers to override ports)
+ifndef SPYGLASS_HUB_PORT
+_PORTS            := $(shell conda run -n $(SPYGLASS_CONDA_ENV) python ./config/hash_port.py "$(PAPER_ID)")
+SPYGLASS_HUB_PORT := $(word 1,$(_PORTS))
+SPYGLASS_DB_PORT  := $(word 2,$(_PORTS))
+endif
+export SPYGLASS_HUB_PORT
+export SPYGLASS_DB_PORT
 
 # Helpers
 DOCKER_EXEC_SH = docker exec -it ${PAPER_ID}_hub /bin/bash -c
@@ -64,7 +67,7 @@ only_up: # needs timeout and error message
 		exit 1; \
 	fi; \
 	echo ""; \
-	echo "JupyterLab available at: http://localhost:$(HUB_PORT)/lab"; \
+	echo "JupyterLab available at: http://localhost:$(SPYGLASS_HUB_PORT)/lab"; \
 	echo "Password: ${PAPER_ID}"
 
 
@@ -77,7 +80,7 @@ quick-build: check_env only_up
 
 # Print the JupyterLab URL for this paper
 port:
-	@echo "http://localhost:$(HUB_PORT)/lab"
+	@echo "http://localhost:$(SPYGLASS_HUB_PORT)/lab"
 
 # Publish to docker hub
 publish:

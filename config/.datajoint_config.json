@@ -29,7 +29,7 @@
     },
     "custom": {
         "spyglass_dirs": {
-            "base_dir": "/home/jovyan/data"
+            "base": "/home/jovyan/data"
         }
     }
 }

@@ -31,3 +31,17 @@ def test_artifact_name_shortened():
 def test_unlisted_field_unchanged():
     text = " `some_other_field` varchar(255) NOT NULL"
     assert patch(text) == text
+
+
+def test_charset_preserves_trailing_semicolon():
+    text = "ENGINE=InnoDB DEFAULT CHARSET=latin1;"
+    result = patch(text)
+    assert "DEFAULT CHARSET" not in result
+    assert result.endswith(";")
+
+
+def test_collate_preserves_trailing_semicolon():
+    text = "ENGINE=InnoDB DEFAULT COLLATE latin1_swedish_ci;"
+    result = patch(text)
+    assert "DEFAULT COLLATE" not in result
+    assert result.endswith(";")

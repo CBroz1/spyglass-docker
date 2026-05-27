@@ -25,8 +25,8 @@ jobs:
         run: |
           {
             echo "PAPER_ID=ci_test"
-            echo "HUB_PORT=11111"
-            echo "DB_PORT=22222"
+            echo "SPYGLASS_HUB_PORT=11111"
+            echo "SPYGLASS_DB_PORT=22222"
             echo "HUB_IMAGE_NAME=testuser/hub"
             echo "DB_IMAGE_NAME=testuser/db"
             echo "MYSQL_USER=root"

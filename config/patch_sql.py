@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 COLLATION = [
-    (r" DEFAULT CHARSET=\S+", ""),
-    (r" DEFAULT COLLATE \S+", ""),
+    (r" DEFAULT CHARSET=[^;\s]+", ""),
+    (r" DEFAULT COLLATE [^;\s]+", ""),
 ]
 
 # Key length reductions: field -> (old_size, new_size)

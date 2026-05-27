@@ -29,7 +29,11 @@ for replicating a paper's analyses.
 03. Clone this repository to your local machine.
 04. Copy `example.env` to `.env` and edit the values.
 05. Copy the paper's notebooks to `notebooks/`[^2].
-06. Remove items from the `environment.yml` that require GPU support like `jax`.
+06. Edit `${SPYGLASS_PAPER_DIR}/environment.yml` to remove packages that require
+    GPU support (e.g. `jax`, `jaxlib`). Edits must be made to the source file —
+    `make build` overwrites `export_files/environment.yml` on every run, so
+    changes made there are lost on rebuild. Alternatively, uncomment the
+    `mamba remove` line in `Docker_hub.Dockerfile` (see [Speed](#speed)).
 07. Run `make build` to build the docker image. This can take 20–40 minutes the
     first time. When complete, the JupyterLab URL will be printed automatically.
     Run `make port` at any time to reprint it.
