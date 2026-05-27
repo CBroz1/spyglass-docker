@@ -1,8 +1,15 @@
 spyglass.code-workspace
 .idea/
 
+# User files
+export_files/*yml
+export_files/*yaml
+export_files/*sql
+
 # Notebooks
 *.ipynb
+*checkpoint*
+.ipynb_checkpoints
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
