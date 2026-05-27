@@ -1,0 +1,47 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest
+      - run: pytest test/ -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell script syntax
+        run: bash -n config/*.sh
+
+      - name: Create stub .env
+        run: |
+          {
+            echo "PAPER_ID=ci_test"
+            echo "HUB_PORT=11111"
+            echo "DB_PORT=22222"
+            echo "HUB_IMAGE_NAME=testuser/hub"
+            echo "DB_IMAGE_NAME=testuser/db"
+            echo "MYSQL_USER=root"
+            echo "MYSQL_HOST=db"
+            echo "MYSQL_ROOT_PASSWORD=test"
+            echo "MYSQL_ROOT_HOST=%"
+            echo "JUPYTER_SERVER_APP_PASSWORD=ci_test"
+            echo "SPYGLASS_CONDA_ENV=spyglass"
+            echo "DOCKER_HUB_USER=testuser"
+            echo "SPYGLASS_BASE_DIR=/tmp"
+            echo "SPYGLASS_PAPER_DIR=/tmp/export/ci_test"
+          } > .env
+
+      - name: Validate docker-compose.yaml
+        run: docker compose config -q
+
+      - name: Validate docker-compose-collab.yml
+        run: docker compose -f docker-compose-collab.yml config -q

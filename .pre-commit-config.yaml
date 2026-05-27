@@ -1,0 +1,56 @@
+default_stages: [pre-commit, pre-push]
+
+repos:
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        name: Format Markdown
+        language: python
+        types: [markdown]
+        args: [--wrap, "80", --number]
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-footnote
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        args: [--unsafe]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        description: Forces to replace line ending by the UNIX 'lf' character.
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md"]
+        exclude: \.md$
+      - id: debug-statements
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-case-conflict
+      - id: fix-byte-order-marker
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args:
+          - --no-warnings
+          - -d
+          - "{extends: relaxed, rules: {line-length: {max: 80}}}"
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.14.13
+    hooks:
+      - id: ruff
+        args: ["--line-length", "80"]
+      - id: ruff-format
+        args: ["--line-length", "80"]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell

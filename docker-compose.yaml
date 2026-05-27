@@ -10,8 +10,8 @@ services:
     ports:
       - "${HUB_PORT}:8888"
     volumes:
-      - ${PAPER_ID}_conda:/opt/conda
-      - ${PAPER_ID}_notebooks:/home/jovyan/notebooks
+      - conda:/opt/conda
+      - notebooks:/home/jovyan/notebooks
     depends_on:
       - db
 
@@ -30,7 +30,7 @@ services:
       - "${DB_PORT}:3306"
     volumes:
       - ./config/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      - ${PAPER_ID}_db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
       - ./config/grant_root_permissions.sql:/docker-entrypoint-initdb.d/grant_root_permissions.sql
     restart:
       on-failure
@@ -40,6 +40,9 @@ networks:
     name: spyglass_net
 
 volumes: # Docker managed mappings.
-  ${PAPER_ID}_conda: # Saves time declaring env
-  ${PAPER_ID}_notebooks: # Saves user notebook edits
-  ${PAPER_ID}_db_data: # Allows persistent db data
+  conda: # Saves time declaring env
+    name: "${PAPER_ID}_conda"
+  notebooks: # Saves user notebook edits
+    name: "${PAPER_ID}_notebooks"
+  db_data: # Allows persistent db data
+    name: "${PAPER_ID}_db_data"

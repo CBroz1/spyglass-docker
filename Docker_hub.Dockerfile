@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM quay.io/jupyter/base-notebook
 
 USER root

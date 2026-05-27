@@ -1,20 +1,25 @@
-.PHONY: down clean stop port quick-build
+.PHONY: stop remove clean port quick-build
 build: up
-up: check_env copy_files down only_up
-enter: check_env copy_files down only_up only_enter
+up: check_env copy_files remove only_up
+enter: check_env copy_files remove only_up only_enter
 run: check_env only_run
 
-# Include .env file
-include .env
+# Include .env file (-include: no error if missing; check_env prints a friendly message)
+-include .env
+
+export DOCKER_BUILDKIT := 1
+
+# Fallback if SPYGLASS_CONDA_ENV not set in .env
+SPYGLASS_CONDA_ENV ?= spyglass
 
 # Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
-HUB_PORT := $(shell python3 -c "import hashlib; h=hashlib.sha256('$(PAPER_ID)'.encode()).hexdigest(); print(10240 + (int(h,16) % 49761))")
-DB_PORT  := $(shell python3 -c "import hashlib; h=hashlib.sha256('$(PAPER_ID)_db'.encode()).hexdigest(); print(10240 + (int(h,16) % 49761))")
+_PORTS   := $(shell conda run -n $(SPYGLASS_CONDA_ENV) python ./config/hash_port.py "$(PAPER_ID)")
+HUB_PORT := $(word 1,$(_PORTS))
+DB_PORT  := $(word 2,$(_PORTS))
 export HUB_PORT
 export DB_PORT
 
 # Helpers
-IS_RUNNING=$(shell docker ps --filter "name=${PAPER_ID}_hub" --filter "status=running" -q)
 DOCKER_EXEC_SH = docker exec -it ${PAPER_ID}_hub /bin/bash -c
 DOCKER_EXEC_SQL = docker exec -it ${PAPER_ID}_hub mysql -e
 
@@ -30,38 +35,22 @@ check_env:
 # Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
-	@sed -i '/spyglass-neuro.*+g/ s|spyglass-neuro==\([^+]*\)+g\([0-9a-f]*\)[^ ]*|spyglass-neuro @ git+https://github.com/LorenFrankLab/spyglass@\2|' ./export_files/environment.yml
+	@SPYGLASS_CONDA_ENV=$(SPYGLASS_CONDA_ENV) bash ./config/patch_env.sh ./export_files/environment.yml
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
-	@for file in ./export_files/*sql; do \
-		sed -i 's/ DEFAULT CHARSET=[^ ]\w*//g' $${file}; \
-		sed -i 's/ DEFAULT COLLATE [^ ]\w*//g' $${file}; \
-		sed -i 's/ `nwb_file_name` varchar(255)/ `nwb_file_name` varchar(64)/g' $${file}; \
-		sed -i 's/ `analysis_file_name` varchar(255)/ `analysis_file_name` varchar(64)/g' $${file}; \
-		sed -i 's/ `interval_list_name` varchar(200)/ `interval_list_name` varchar(170)/g' $${file}; \
-		sed -i 's/ `position_info_param_name` varchar(80)/ `position_info_param_name` varchar(32)/g' $${file}; \
-		sed -i 's/ `mark_param_name` varchar(80)/ `mark_param_name` varchar(32)/g' $${file}; \
-		sed -i 's/ `artifact_removed_interval_list_name` varchar(200)/ `artifact_removed_interval_list_name` varchar(128)/g' $${file}; \
-		sed -i 's/ `metric_params_name` varchar(200)/ `metric_params_name` varchar(64)/g' $${file}; \
-		sed -i 's/ `auto_curation_params_name` varchar(200)/ `auto_curation_params_name` varchar(36)/g' $${file}; \
-		sed -i 's/ `sort_interval_name` varchar(200)/ `sort_interval_name` varchar(64)/g' $${file}; \
-		sed -i 's/ `preproc_params_name` varchar(200)/ `preproc_params_name` varchar(32)/g' $${file}; \
-		sed -i 's/ `sorter` varchar(200)/ `sorter` varchar(32)/g' $${file}; \
-		sed -i 's/ `sorter_params_name` varchar(200)/ `sorter_params_name` varchar(64)/g' $${file}; \
-	done
+	@SPYGLASS_CONDA_ENV=$(SPYGLASS_CONDA_ENV) bash ./config/patch_sql.sh ./export_files/
 
-# Tear down the container, if it is running
-down:
-	@if [ -z "$(IS_RUNNING)" ]; then \
-		echo "The container is not running."; \
-	else \
-		docker stop ${PAPER_ID}_hub; \
-		docker rm ${PAPER_ID}_hub; \
-		docker stop ${PAPER_ID}_db; \
-		docker rm ${PAPER_ID}_db; \
-	fi
+# Stop containers without removing them
+stop:
+	@docker stop ${PAPER_ID}_hub 2>/dev/null || true
+	@docker stop ${PAPER_ID}_db  2>/dev/null || true
 
-# Remove containers and all associated volumes (full teardown)
-clean: down
+# Stop and remove containers (preserves volumes)
+remove: stop
+	@docker rm ${PAPER_ID}_hub 2>/dev/null || true
+	@docker rm ${PAPER_ID}_db  2>/dev/null || true
+
+# Stop and remove containers and all associated volumes (full teardown)
+clean: remove
 	@docker volume rm ${PAPER_ID}_conda ${PAPER_ID}_notebooks ${PAPER_ID}_db_data 2>/dev/null || true
 
 # Build the container, run sanity check ls
@@ -89,10 +78,6 @@ quick-build: check_env only_up
 # Print the JupyterLab URL for this paper
 port:
 	@echo "http://localhost:$(HUB_PORT)/lab"
-
-# Stop collaborator containers (make run)
-stop:
-	@docker compose -f docker-compose-collab.yml down
 
 # Publish to docker hub
 publish:

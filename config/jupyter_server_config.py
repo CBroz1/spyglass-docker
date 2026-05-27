@@ -2,7 +2,7 @@ import os
 
 from jupyter_server.auth import passwd
 
-c = get_config()
+c = get_config()  # noqa: F821
 
 # Set default kernel to the paper_id
 paper_id = os.getenv("PAPER_ID", "password")
