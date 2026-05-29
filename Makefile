@@ -30,12 +30,21 @@ export SPYGLASS_DB_PORT
 DOCKER_EXEC_SH = docker exec -it ${PAPER_ID}_hub /bin/bash -c
 DOCKER_EXEC_SQL = docker exec -it ${PAPER_ID}_hub mysql -e
 
-# Check for .env file
+# Check for .env file and required keys
+# Optional keys (have fallbacks): SPYGLASS_CONDA_ENV, SPYGLASS_VOLUME_DIR, JUPYTER_SERVER_APP_PASSWORD
 check_env:
 	@if [ ! -f .env ]; then \
-			echo ".env file not found!"; \
-			echo "Please copy example.env to .env and fill in the required values."; \
-			exit 1; \
+		echo ".env file not found!"; \
+		echo "Please copy example.env to .env and fill in the required values."; \
+		exit 1; \
+	fi
+	@missing=""; \
+	for key in PAPER_ID SPYGLASS_BASE_DIR DOCKER_HUB_USER MYSQL_ROOT_PASSWORD; do \
+		grep -q "^$$key=." .env || missing="$$missing $$key"; \
+	done; \
+	if [ -n "$$missing" ]; then \
+		echo "Missing required keys in .env:$$missing"; \
+		exit 1; \
 	fi
 
 # Copy files from the paper directory to the export_files directory
