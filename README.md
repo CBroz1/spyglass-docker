@@ -136,9 +136,10 @@ including a full conda install (20–40 minutes).
 
 <details><summary>What is stored in each volume?</summary>
 
-Docker volumes are directories managed by Docker, stored outside the project
-folder (typically under `/var/lib/docker/volumes/`). Three volumes are created
-per paper, each named with your `PAPER_ID` as a prefix:
+Volume data is stored under `SPYGLASS_VOLUME_DIR` (default:
+`${SPYGLASS_PAPER_DIR}/volumes`), keeping it on the same filesystem as your
+paper data rather than filling up `/var/lib/docker/volumes/`. Three
+subdirectories are created per paper:
 
 - **`${PAPER_ID}_conda`** — the full conda environment (~5–15 GB depending on
   packages). Removing this means the next build re-downloads and re-installs all
@@ -153,7 +154,7 @@ per paper, each named with your `PAPER_ID` as a prefix:
 To inspect volume sizes before deciding:
 
 ```bash
-docker system df -v | grep ${PAPER_ID}
+du -sh ${SPYGLASS_VOLUME_DIR}/*/
 ```
 
 </details>

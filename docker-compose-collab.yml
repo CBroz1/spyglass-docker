@@ -34,7 +34,22 @@ networks:
 volumes: # Docker managed mappings.
   conda: # Saves time declaring env
     name: "${PAPER_ID}_conda"
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPYGLASS_VOLUME_DIR}/conda
   notebooks: # Saves user notebook edits
     name: "${PAPER_ID}_notebooks"
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPYGLASS_VOLUME_DIR}/notebooks
   db_data: # Allows persistent db data
     name: "${PAPER_ID}_db_data"
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SPYGLASS_VOLUME_DIR}/db_data

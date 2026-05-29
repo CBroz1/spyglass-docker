@@ -38,6 +38,7 @@ jobs:
             echo "DOCKER_HUB_USER=testuser"
             echo "SPYGLASS_BASE_DIR=/tmp"
             echo "SPYGLASS_PAPER_DIR=/tmp/export/ci_test"
+            echo "SPYGLASS_VOLUME_DIR=/tmp/export/ci_test/volumes"
           } > .env
 
       - name: Validate docker-compose.yaml

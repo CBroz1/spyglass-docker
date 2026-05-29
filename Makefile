@@ -11,6 +11,9 @@ export DOCKER_BUILDKIT := 1
 
 # Fallback if SPYGLASS_CONDA_ENV not set in .env
 SPYGLASS_CONDA_ENV ?= spyglass
+# Fallback if SPYGLASS_VOLUME_DIR not set in .env
+SPYGLASS_VOLUME_DIR ?= $(SPYGLASS_PAPER_DIR)/volumes
+export SPYGLASS_VOLUME_DIR
 
 # Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
 # Skip if already set in environment (allows callers to override ports)
@@ -56,9 +59,11 @@ remove: stop
 # Stop and remove containers and all associated volumes (full teardown)
 clean: remove
 	@docker volume rm ${PAPER_ID}_conda ${PAPER_ID}_notebooks ${PAPER_ID}_db_data 2>/dev/null || true
+	@rm -rf $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data 2>/dev/null || true
 
 # Build the container, run sanity check ls
 only_up: # needs timeout and error message
+	@mkdir -p $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data
 	@docker compose up --build -d -t 300; \
 	exit_status=$$?; \
 	if [ $$exit_status -ne 0 ]; then \
@@ -94,4 +99,5 @@ publish:
 
 # Run the published container
 only_run:
+	@mkdir -p $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data
 	@docker compose -f docker-compose-collab.yml up -d
