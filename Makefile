@@ -26,9 +26,12 @@ endif
 export SPYGLASS_HUB_PORT
 export SPYGLASS_DB_PORT
 
-# Helpers
-DOCKER_EXEC_SH = docker exec -it ${PAPER_ID}_hub /bin/bash -c
-DOCKER_EXEC_SQL = docker exec -it ${PAPER_ID}_hub mysql -e
+# Prefix docker commands with sudo when SUDO_DOCKER=1 in .env
+DOCKER      := $(if $(filter 1,$(SUDO_DOCKER)),sudo docker,docker)
+DOCKER_COMP := $(DOCKER) compose
+
+DOCKER_EXEC_SH  = $(DOCKER) exec -it ${PAPER_ID}_hub /bin/bash -c
+DOCKER_EXEC_SQL = $(DOCKER) exec -it ${PAPER_ID}_hub mysql -e
 
 # Check for .env file and required keys
 # Optional keys (have fallbacks): SPYGLASS_CONDA_ENV, SPYGLASS_VOLUME_DIR, JUPYTER_SERVER_APP_PASSWORD
@@ -54,31 +57,32 @@ copy_files:
 	@SPYGLASS_CONDA_ENV=$(SPYGLASS_CONDA_ENV) bash ./config/patch_env.sh ./export_files/environment.yml
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
 	@SPYGLASS_CONDA_ENV=$(SPYGLASS_CONDA_ENV) bash ./config/patch_sql.sh ./export_files/
+	@conda run -n $(SPYGLASS_CONDA_ENV) python config/check_key_length.py export_files/ || true
 
 # Stop containers without removing them
 stop:
-	@docker stop ${PAPER_ID}_hub 2>/dev/null || true
-	@docker stop ${PAPER_ID}_db  2>/dev/null || true
+	@$(DOCKER) stop ${PAPER_ID}_hub 2>/dev/null || true
+	@$(DOCKER) stop ${PAPER_ID}_db  2>/dev/null || true
 
 # Stop and remove containers (preserves volumes)
 remove: stop
-	@docker rm ${PAPER_ID}_hub 2>/dev/null || true
-	@docker rm ${PAPER_ID}_db  2>/dev/null || true
+	@$(DOCKER) rm ${PAPER_ID}_hub 2>/dev/null || true
+	@$(DOCKER) rm ${PAPER_ID}_db  2>/dev/null || true
 
 # Stop and remove containers and all associated volumes (full teardown)
 clean: remove
-	@docker volume rm ${PAPER_ID}_conda ${PAPER_ID}_notebooks ${PAPER_ID}_db_data 2>/dev/null || true
+	@$(DOCKER) volume rm ${PAPER_ID}_conda ${PAPER_ID}_notebooks ${PAPER_ID}_db_data 2>/dev/null || true
 	@rm -rf $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data 2>/dev/null || true
 
 # Build the container, run sanity check ls
 only_up: # needs timeout and error message
 	@mkdir -p $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data
-	@docker compose up --build -d -t 300; \
+	@$(DOCKER_COMP) up --build -d -t 300; \
 	exit_status=$$?; \
 	if [ $$exit_status -ne 0 ]; then \
 		echo "Container failed."; \
 		echo "Please check which container is not running (${PAPER_ID}_hub or ${PAPER_ID}_db)"; \
-		echo "And run 'docker logs <container_name>' to see the error message."; \
+		echo "And run '$(DOCKER) logs <container_name>' to see the error message."; \
 		exit 1; \
 	fi; \
 	echo ""; \
@@ -88,11 +92,11 @@ only_up: # needs timeout and error message
 
 # Enter the container
 only_enter:
-	@docker exec -it ${PAPER_ID}_hub /bin/bash
+	@$(DOCKER) exec -it ${PAPER_ID}_hub /bin/bash
 
 # Rebuild hub image only, skipping copy_files and teardown (for debugging)
 quick-build: check_env
-	@docker compose up --build -d -t 300 hub
+	@$(DOCKER_COMP) up --build -d -t 300 hub
 
 # Print the JupyterLab URL for this paper
 port:
@@ -100,13 +104,13 @@ port:
 
 # Publish to docker hub
 publish:
-	@docker login
-	@docker build -f Docker_hub.Dockerfile . -t ${HUB_IMAGE_NAME}:latest
-	@docker build -f Docker_db.Dockerfile . -t ${DB_IMAGE_NAME}:latest
-	@docker push ${HUB_IMAGE_NAME}:latest
-	@docker push ${DB_IMAGE_NAME}:latest
+	@$(DOCKER) login
+	@$(DOCKER) build -f Docker_hub.Dockerfile . -t ${HUB_IMAGE_NAME}:latest
+	@$(DOCKER) build -f Docker_db.Dockerfile . -t ${DB_IMAGE_NAME}:latest
+	@$(DOCKER) push ${HUB_IMAGE_NAME}:latest
+	@$(DOCKER) push ${DB_IMAGE_NAME}:latest
 
 # Run the published container
 only_run:
 	@mkdir -p $(SPYGLASS_VOLUME_DIR)/conda $(SPYGLASS_VOLUME_DIR)/notebooks $(SPYGLASS_VOLUME_DIR)/db_data
-	@docker compose -f docker-compose-collab.yml up -d
+	@$(DOCKER_COMP) -f docker-compose-collab.yml up -d

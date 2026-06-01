@@ -1,6 +1,7 @@
 from patch_env import patch
 
 DEV = "  - spyglass-neuro==0.5.4a2.dev23+g89e3be86.d20250424\n"
+DEV_NO_SHA = "  - spyglass-neuro==0.5.0a0.dev123\n"
 STABLE = "  - spyglass-neuro==0.5.5\n"
 ALPHA = "  - spyglass-neuro==0.5.4a1\n"
 PREFIX = "prefix: /home/user/anaconda3/envs/spyglass\n"
@@ -25,6 +26,15 @@ def test_stable_version_unchanged():
 
 def test_alpha_version_unchanged():
     assert patch(ALPHA) == ALPHA
+
+
+def test_dev_no_sha_strips_prerelease():
+    result = patch(DEV_NO_SHA)
+    assert "spyglass-neuro==0.5.0\n" in result
+
+
+def test_dev_no_sha_removes_dev_suffix():
+    assert ".dev" not in patch(DEV_NO_SHA)
 
 
 def test_prefix_stripped():

@@ -20,14 +20,17 @@ for replicating a paper's analyses.
     - [Docker](https://docs.docker.com/get-docker/) builds, runs, and manages
       containers. Docker Compose v2 is required (`docker compose`, not
       `docker-compose`). It ships with Docker Desktop and Docker Engine ≥ 20.10.
-      Verify with: `docker compose version`.
+      Verify with: `docker compose version`. BuildKit is also required; it is
+      enabled by default in Docker Desktop and Docker Engine ≥ 23. Verify with:
+      `docker buildx version`.
     - `conda` (e.g. [Miniforge](https://github.com/conda-forge/miniforge)) with
       a working environment. The default environment name is `spyglass`; set
       `SPYGLASS_CONDA_ENV` in `.env` to use a different name.
 02. Register for [Docker Hub](https://hub.docker.com/signup) and run
     `docker login`.
 03. Clone this repository to your local machine.
-04. Copy `example.env` to `.env` and edit the values.
+04. Copy `example.env` to `.env` and edit the values. On systems that require
+    `sudo` to run Docker (common on shared Linux servers), set `SUDO_DOCKER=1`.
 05. Copy the paper's notebooks to `notebooks/`[^2].
 06. Edit `${SPYGLASS_PAPER_DIR}/environment.yml` to remove packages that require
     GPU support (e.g. `jax`, `jaxlib`). Edits must be made to the source file —
@@ -82,7 +85,10 @@ for replicating a paper's analyses.
   - Installs the paper's conda environment.
   - Runs `entrypoint.py` to configure the datajoint connection.
 - `example.env`: Example environment variables for the `.env` file. Must be
-  copied to `.env` and edited.
+  copied to `.env` and edited. Key optional flags:
+  - `SUDO_DOCKER=1` — prefix all Docker commands with `sudo`. Set this on
+    shared Linux servers where Docker requires elevated privileges.
+  - `DANDI_API_KEY` — required only for embargoed DANDI datasets.
 - `config`: Contains additional configuration files.
   - `.datajoint_config.py`: Default configuration for the datajoint connection.
   - `entrypoint.py`: Edits the datajoint config based on environment variables.
@@ -207,7 +213,44 @@ the adjustments from
 [PR #664](https://github.com/LorenFrankLab/spyglass/pull/664).
 
 If you encounter key length errors for a column not listed in `patch_sql.sh`,
-add a substitution to the `replacements` list in that file to match.
+add a substitution to the `replacements` list in that file to match. Run
+`python config/check_key_length.py export_files/` to scan your SQL dump for
+over-limit columns and get the exact substitution to add.
+
+### Analysis NWB Files
+
+Notebooks that access analysis NWB files should use spyglass APIs rather than
+calling DataJoint or pynwb directly.
+
+<details><summary>Correct patterns</summary>
+
+**Getting the file path** — `get_abs_path` uses a multi-step fallback that
+works even when the export omits external-table rows:
+
+```python
+# ✗ fragile: requires the external-table row to exist in the export
+path = (AnalysisNwbfile() & {"analysis_file_name": fname}).fetch1("analysis_file_abs_path")
+
+# ✓ correct
+path = AnalysisNwbfile().get_abs_path(fname)
+```
+
+**Opening a file that may only exist on DANDI** — `get_nwb_file` falls back to
+DANDI streaming when the file is not present locally:
+
+```python
+# ✗ breaks when the file is not on disk
+with pynwb.NWBHDF5IO(path, "r") as io:
+    nwbf = io.read()
+
+# ✓ correct: local → kachery → DANDI
+from spyglass.utils.nwb_helper_fn import get_nwb_file
+nwbf = get_nwb_file(path)
+```
+
+For embargoed DANDI datasets, set `DANDI_API_KEY` in `.env`.
+
+</details>
 
 ## Elevated Access
 
@@ -216,7 +259,7 @@ additional package or debug within the container, you may wish do the following:
 
 <details><summary>Admin within the container</summary>
 
-Add sudo for the default user, mysql credentials to the `Dockerfile`, and add
+Add sudo for the default user, mysql credentials to `Docker_hub.Dockerfile`, and add
 `mysql-client` to allow command line access to the database.
 
 ```Dockerfile
@@ -249,7 +292,7 @@ Each `ARG` item must also be added to the `docker-compose.yml` file under the
 ```yaml
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Docker_hub.Dockerfile
       args:
         MYSQL_HOST: db
         MYSQL_USER: root

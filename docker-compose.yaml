@@ -7,6 +7,9 @@ services:
       dockerfile: Docker_hub.Dockerfile
     container_name: ${PAPER_ID}_hub
     env_file: .env
+    environment:
+      # Ensure in-container spyglass uses the Docker data dir, not the host path from .env
+      - SPYGLASS_BASE_DIR=/home/jovyan/data
     ports:
       - "${SPYGLASS_HUB_PORT}:8888"
     volumes:
