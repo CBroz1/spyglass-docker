@@ -5,6 +5,7 @@ from pathlib import Path
 
 def patch(text: str) -> str:
     # spyglass-neuro==X.Y.Z[pre]+g<sha>[.d<date>] -> git+...@<sha>
+    # Pins to the exact commit recorded in the version string, not the latest release.
     text = re.sub(
         r"spyglass-neuro==[^\s+]+\+g([0-9a-f]+)[^\s]*",
         r"spyglass-neuro @ git+https://github.com/LorenFrankLab/spyglass@\1",
