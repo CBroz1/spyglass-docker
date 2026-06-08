@@ -32,10 +32,13 @@ ARG PAPER_ID
 COPY export_files/environment.yml /tmp/environment.yml
 RUN --mount=type=cache,target=/opt/conda/pkgs,uid=1000 \
     --mount=type=cache,target=/home/jovyan/.cache/pip,uid=1000 \
+    --mount=type=cache,target=/home/jovyan/.cache/conda,uid=1000 \
     conda update conda -y \
   && conda init bash \
   && mamba env create -f /tmp/environment.yml \
-  # RUN mamba remove -n ${PAPER_ID} -y jax jaxlib  # uncomment to drop GPU-only packages
+  && mamba install -n ${PAPER_ID} -y ipykernel \
+  # To drop GPU-only packages pulled in by transitive deps, uncomment:
+  # && mamba remove -n ${PAPER_ID} --force -y jax jaxlib
   && echo "conda activate ${PAPER_ID}" >> ~/.bashrc
 ENV PATH=/opt/conda/envs/${PAPER_ID}/bin:$PATH
 

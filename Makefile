@@ -11,8 +11,20 @@ export DOCKER_BUILDKIT := 1
 
 # Fallback if SPYGLASS_CONDA_ENV not set in .env
 SPYGLASS_CONDA_ENV ?= spyglass
-# Fallback if SPYGLASS_VOLUME_DIR not set in .env
+
+# Normalize path variables. Make treats '#' as a comment when parsing .env, so
+#   SPYGLASS_BASE_DIR=/path/ # note
+# becomes '/path/ ' (trailing slash + space), corrupting any derived paths.
+# SPYGLASS_BASE_DIR: strip trailing slashes and spaces.
+override SPYGLASS_BASE_DIR := $(patsubst %/,%,$(strip $(SPYGLASS_BASE_DIR)))
+# SPYGLASS_PAPER_DIR: uses recursive '=' in .env so it re-expands SPYGLASS_BASE_DIR
+# at use time — the override above already fixes the common derived case.
+# The ?= provides a fallback when .env omits it entirely.
+SPYGLASS_PAPER_DIR  ?= $(SPYGLASS_BASE_DIR)/export/$(strip $(PAPER_ID))
+override SPYGLASS_PAPER_DIR := $(patsubst %/,%,$(strip $(SPYGLASS_PAPER_DIR)))
+# SPYGLASS_VOLUME_DIR: same treatment; its own inline comment can leave a trailing space.
 SPYGLASS_VOLUME_DIR ?= $(SPYGLASS_PAPER_DIR)/volumes
+override SPYGLASS_VOLUME_DIR := $(patsubst %/,%,$(strip $(SPYGLASS_VOLUME_DIR)))
 export SPYGLASS_VOLUME_DIR
 
 # Derive per-paper ports from PAPER_ID (SHA-256, range 10240-60000, ~0.006% collision at 3 concurrent users)
@@ -53,6 +65,13 @@ check_env:
 # Copy files from the paper directory to the export_files directory
 # Edit CHARSET, COLLATE, and VARCHAR length
 copy_files:
+	@if [ ! -d "$(SPYGLASS_PAPER_DIR)" ]; then \
+		echo "Error: export directory not found: $(SPYGLASS_PAPER_DIR)"; \
+		echo "Regenerate it from your spyglass database with:"; \
+		echo "  from spyglass.common import Export"; \
+		echo "  Export().populate_paper(paper_id='$(PAPER_ID)')"; \
+		exit 1; \
+	fi
 	@cp -f ${SPYGLASS_PAPER_DIR}/environment.yml ./export_files/
 	@SPYGLASS_CONDA_ENV=$(SPYGLASS_CONDA_ENV) bash ./config/patch_env.sh ./export_files/environment.yml
 	@cp -rf ${SPYGLASS_PAPER_DIR}/*sql ./export_files/
